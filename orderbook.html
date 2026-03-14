@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>orderbook — by shafay</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0f0f0f;
+    font-family: 'JetBrains Mono', monospace;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 24px 20px;
+  }
+
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .title { font-size: 28px; font-weight: 700; color: #fff; letter-spacing: -1px; }
+  .title span { color: #00ff88; }
+  .subtitle { font-size: 11px; color: #555; margin-top: 4px; letter-spacing: 1px; }
+  .mid-label { font-size: 10px; color: #555; letter-spacing: 1px; text-align: right; }
+  .mid-val { font-size: 32px; font-weight: 700; color: #fff; text-align: right; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .stat {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .stat-label { font-size: 10px; color: #555; margin-bottom: 4px; letter-spacing: 1px; }
+  .stat-val { font-size: 18px; font-weight: 700; }
+  .green { color: #00ff88; }
+  .red { color: #ff4757; }
+  .blue { color: #4dabf7; }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr 280px;
+    gap: 14px;
+    align-items: start;
+  }
+
+  @media (max-width: 800px) {
+    .main { grid-template-columns: 1fr 1fr; }
+    .side-col { grid-column: 1 / -1; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .panel {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .panel-head {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .panel-head.asks { color: #ff4757; }
+  .panel-head.bids { color: #00ff88; }
+  .panel-head.ctrl { color: #ffd43b; }
+  .panel-head.log  { color: #4dabf7; }
+
+  .col-heads {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 6px 14px;
+    font-size: 10px;
+    color: #444;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #222;
+  }
+
+  .order-list { min-height: 200px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 5px 14px;
+    font-size: 12px;
+    position: relative;
+  }
+
+  .row:hover { background: #222; }
+
+  .bar {
+    position: absolute;
+    top: 0; bottom: 0; right: 0;
+    opacity: 0.12;
+    transition: width 0.4s;
+  }
+
+  .bar.a { background: #ff4757; }
+  .bar.b { background: #00ff88; }
+
+  .row span { position: relative; z-index: 1; }
+  .ap { color: #ff4757; font-weight: 700; }
+  .bp { color: #00ff88; font-weight: 700; }
+  .muted { color: #444; }
+
+  .ctrl-body { padding: 14px; }
+
+  .toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .tog-btn {
+    padding: 7px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: transparent;
+    color: #555;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .tog-btn.on { background: #fff; color: #0f0f0f; border-color: #fff; }
+
+  .field-label {
+    font-size: 10px;
+    color: #555;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    display: block;
+  }
+
+  input[type=number] {
+    width: 100%;
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    color: #e0e0e0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type=number]:focus { border-color: #555; }
+  input:disabled { opacity: 0.3; }
+
+  .btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 7px;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn:active { transform: scale(0.98); }
+  .btn-b { background: #00ff88; color: #0f0f0f; }
+  .btn-s { background: #ff4757; color: #fff; }
+
+  .log-body { max-height: 180px; overflow-y: auto; }
+  .log-body::-webkit-scrollbar { width: 3px; }
+  .log-body::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+  .log-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 14px;
+    font-size: 11px;
+    border-bottom: 1px solid #1f1f1f;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .log-empty { padding: 14px; font-size: 11px; color: #444; }
+
+  .toast {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: all 0.25s;
+    pointer-events: none;
+    letter-spacing: 1px;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div>
+    <div class="title">order<span>book</span></div>
+    <div class="subtitle">// built by shafay · age 14</div>
+  </div>
+  <div>
+    <div class="mid-label">MID PRICE</div>
+    <div class="mid-val" id="mid">$100.00</div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-label">BEST BID</div><div class="stat-val green" id="s-bid">—</div></div>
+  <div class="stat"><div class="stat-label">BEST ASK</div><div class="stat-val red" id="s-ask">—</div></div>
+  <div class="stat"><div class="stat-label">SPREAD</div><div class="stat-val blue" id="s-spread">—</div></div>
+  <div class="stat"><div class="stat-label">TRADES</div><div class="stat-val" id="s-trades">0</div></div>
+</div>
+
+<div class="main">
+
+  <div class="panel">
+    <div class="panel-head asks"><span>asks</span><span>sell orders</span></div>
+    <div class="col-heads"><span>price</span><span>qty</span><span>total</span></div>
+    <div class="order-list" id="ask-list"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head bids"><span>bids</span><span>buy orders</span></div>
+    <div class="col-heads"><span>price</span><span>qty</span><span>total</span></div>
+    <div class="order-list" id="bid-list"></div>
+  </div>
+
+  <div class="side-col" style="display:flex;flex-direction:column;gap:14px;">
+    <div class="panel">
+      <div class="panel-head ctrl"><span>place order</span></div>
+      <div class="ctrl-body">
+        <div class="toggle">
+          <button class="tog-btn on" id="t-limit" onclick="setType('limit')">limit</button>
+          <button class="tog-btn" id="t-market" onclick="setType('market')">market</button>
+        </div>
+        <label class="field-label">price</label>
+        <input type="number" id="o-price" value="100" step="0.5">
+        <label class="field-label">quantity</label>
+        <input type="number" id="o-qty" value="10" min="1">
+        <button class="btn btn-b" onclick="place('buy')">buy</button>
+        <button class="btn btn-s" onclick="place('sell')">sell</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head log"><span>trade log</span></div>
+      <div class="log-body" id="log"><div class="log-empty">no trades yet</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const S = { bids:{}, asks:{}, trades:[], count:0, type:'limit' };
+
+  function seed() {
+    for (let i=1;i<=8;i++) {
+      S.asks[(100+i*0.5).toFixed(2)] = Math.floor(Math.random()*60)+10;
+      S.bids[(100-i*0.5).toFixed(2)] = Math.floor(Math.random()*60)+10;
+    }
+  }
+
+  function setType(t) {
+    S.type=t;
+    document.getElementById('t-limit').classList.toggle('on',t==='limit');
+    document.getElementById('t-market').classList.toggle('on',t==='market');
+    document.getElementById('o-price').disabled = t==='market';
+  }
+
+  function place(side) {
+    const qty = parseInt(document.getElementById('o-qty').value);
+    if(!qty||qty<1){toast('invalid qty');return;}
+    if(S.type==='market'){marketOrder(side,qty);}
+    else{
+      const price=parseFloat(document.getElementById('o-price').value);
+      if(!price||price<=0){toast('invalid price');return;}
+      limitOrder(side,price.toFixed(2),qty);
+    }
+    render();stats();
+  }
+
+  function limitOrder(side,price,qty) {
+    let rem=qty;
+    if(side==='buy'){
+      for(const a of Object.keys(S.asks).map(Number).sort((a,b)=>a-b)){
+        if(a>parseFloat(price)||rem<=0)break;
+        const k=a.toFixed(2),fill=Math.min(S.asks[k],rem);
+        S.asks[k]-=fill;if(S.asks[k]<=0)delete S.asks[k];
+        rem-=fill;addTrade('BUY',k,fill);
+      }
+      if(rem>0){S.bids[price]=(S.bids[price]||0)+rem;toast(`bid placed @ $${price}`);}
+    } else {
+      for(const b of Object.keys(S.bids).map(Number).sort((a,b)=>b-a)){
+        if(b<parseFloat(price)||rem<=0)break;
+        const k=b.toFixed(2),fill=Math.min(S.bids[k],rem);
+        S.bids[k]-=fill;if(S.bids[k]<=0)delete S.bids[k];
+        rem-=fill;addTrade('SELL',k,fill);
+      }
+      if(rem>0){S.asks[price]=(S.asks[price]||0)+rem;toast(`ask placed @ $${price}`);}
+    }
+  }
+
+  function marketOrder(side,qty) {
+    let rem=qty;
+    if(side==='buy'){
+      for(const a of Object.keys(S.asks).map(Number).sort((a,b)=>a-b)){
+        if(rem<=0)break;
+        const k=a.toFixed(2),fill=Math.min(S.asks[k],rem);
+        S.asks[k]-=fill;if(S.asks[k]<=0)delete S.asks[k];
+        rem-=fill;addTrade('BUY',k,fill);
+      }
+    } else {
+      for(const b of Object.keys(S.bids).map(Number).sort((a,b)=>b-a)){
+        if(rem<=0)break;
+        const k=b.toFixed(2),fill=Math.min(S.bids[k],rem);
+        S.bids[k]-=fill;if(S.bids[k]<=0)delete S.bids[k];
+        rem-=fill;addTrade('SELL',k,fill);
+      }
+    }
+    if(rem>0)toast('not enough liquidity');
+  }
+
+  function addTrade(side,price,qty) {
+    S.count++;
+    S.trades.unshift({side,price,qty,t:new Date().toTimeString().slice(0,8)});
+    if(S.trades.length>40)S.trades.pop();
+    document.getElementById('log').innerHTML = S.trades.map(tr=>
+      `<div class="log-row">
+        <span class="${tr.side==='BUY'?'green':'red'}">${tr.side}</span>
+        <span>$${tr.price} × ${tr.qty}</span>
+        <span class="muted">${tr.t}</span>
+      </div>`).join('');
+  }
+
+  function render() {
+    const askKeys=Object.keys(S.asks).map(Number).sort((a,b)=>a-b).slice(0,8);
+    const maxA=Math.max(...askKeys.map(k=>S.asks[k.toFixed(2)]),1);
+    document.getElementById('ask-list').innerHTML=[...askKeys].reverse().map(k=>{
+      const key=k.toFixed(2),qty=S.asks[key],pct=Math.round(qty/maxA*100);
+      return `<div class="row"><div class="bar a" style="width:${pct}%"></div>
+        <span class="ap">$${key}</span><span>${qty}</span>
+        <span class="muted">${Math.round(k*qty).toLocaleString()}</span></div>`;
+    }).join('');
+
+    const bidKeys=Object.keys(S.bids).map(Number).sort((a,b)=>b-a).slice(0,8);
+    const maxB=Math.max(...bidKeys.map(k=>S.bids[k.toFixed(2)]),1);
+    document.getElementById('bid-list').innerHTML=bidKeys.map(k=>{
+      const key=k.toFixed(2),qty=S.bids[key],pct=Math.round(qty/maxB*100);
+      return `<div class="row"><div class="bar b" style="width:${pct}%"></div>
+        <span class="bp">$${key}</span><span>${qty}</span>
+        <span class="muted">${Math.round(k*qty).toLocaleString()}</span></div>`;
+    }).join('');
+  }
+
+  function stats() {
+    const asks=Object.keys(S.asks).map(Number).sort((a,b)=>a-b);
+    const bids=Object.keys(S.bids).map(Number).sort((a,b)=>b-a);
+    const ba=asks.length?asks[0].toFixed(2):'—';
+    const bb=bids.length?bids[0].toFixed(2):'—';
+    const sp=(asks.length&&bids.length)?(asks[0]-bids[0]).toFixed(2):'—';
+    const mid=(asks.length&&bids.length)?((asks[0]+bids[0])/2).toFixed(2):'—';
+    document.getElementById('s-ask').textContent=ba==='—'?'—':'$'+ba;
+    document.getElementById('s-bid').textContent=bb==='—'?'—':'$'+bb;
+    document.getElementById('s-spread').textContent=sp==='—'?'—':'$'+sp;
+    document.getElementById('s-trades').textContent=S.count;
+    document.getElementById('mid').textContent=mid==='—'?'—':'$'+mid;
+  }
+
+  function toast(msg) {
+    const el=document.getElementById('toast');
+    el.textContent=msg;el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'),2000);
+  }
+
+  function noise() {
+    const side=Math.random()>0.5?S.asks:S.bids;
+    const keys=Object.keys(side);
+    if(!keys.length)return;
+    const k=keys[Math.floor(Math.random()*keys.length)];
+    side[k]=Math.max(1,side[k]+Math.floor(Math.random()*10)-4);
+    render();stats();
+  }
+
+  seed();render();stats();
+  setInterval(noise,2000);
+</script>
+</body>
+</html>
